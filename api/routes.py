@@ -1,22 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from database import get_db
-from schemas.pydantic_models import UrlRequest
+from schemas.pydantic_models import UrlRequest, UserCreate
 from crud.url_processing import shorten, elongate
+from crud.authentication import register_authentication
 from crud.url_stats import count_em_up, count_em_hr, daily_counts
 import hashlib
 
 router = APIRouter()
 
+
 # endpoint to register a user still not available
+@router.post("/register")
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    auth = register_authentication(user.email, db)
+
+
 # table to store endpoint and it's click counts in background updated every hour
 
 
 @router.post("/shorten_url")  # <-- this is the post method to our API to save the URL
 def shorten_url(
     payload: UrlRequest, db: Session = Depends(get_db)
-):  # <-- tells FastAPI: "Hey! Before running any CRUD, go execute get_db(), grab whatever it yields, and plug it into the db variable."
+):  # <-- tells FastAPI: Before running any CRUD, go execute get_db(), grab whatever it yields, and plug it into the db variable."
     short_cd = shorten(payload.username, payload.long_url, db)
     if short_cd:
         return {"short_url": short_cd}
