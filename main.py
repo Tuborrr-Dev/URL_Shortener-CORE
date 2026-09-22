@@ -5,9 +5,10 @@ from api.routes import (
 
 app = FastAPI(title="URL Shortener API", version="1.0.0")
 
-app.include_router(router)
-
 
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+app.include_router(router)
