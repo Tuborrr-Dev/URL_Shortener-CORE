@@ -50,7 +50,7 @@ def shorten_url(
     current_user: User = Depends(get_current_user),  # <-- Secure JWT dependency
     db: Session = Depends(get_db),
 ):  # <-- tells FastAPI: Before running any CRUD, go execute get_db(), grab whatever it yields, and plug it into the db variable."
-    short_cd = shorten(user_id=current_user.id, long_url=payload.long_url, db=db)
+    short_cd = shorten(user_id=current_user.id, long_url=str(payload.long_url), db=db)
     if short_cd:
         return {"short_url": short_cd}
     else:
