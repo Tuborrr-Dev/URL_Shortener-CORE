@@ -33,9 +33,7 @@ def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": user_id, "token_type": "bearer"}
 
 
 # table to store endpoint and it's click counts in background updated every hour
