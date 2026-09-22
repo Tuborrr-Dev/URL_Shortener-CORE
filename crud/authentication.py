@@ -8,7 +8,28 @@ from sqlalchemy.orm import Session
 from models.models import User
 
 
-def register_authentication(email: str, db: Session):
+def register_authentication(email: str, password: str, db: Session):
     # first we Check if email exists
     if db.query(User).filter(User.email == email).first():
-        raise HTTPException(status_code=400, detail="Email already registered")
+        return None
+    # now we know it is unique we go ahead to generate username
+    base_name = email.split("@")[0]
+    random_suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    username = f"{base_name}_{random_suffix}"
+    new_user = User(
+        email=email, username=username, hashed_password=get_password_hash(password)
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return username
+
+
+def authenticate(username: str, password, db: Session):
+    user = db.query(User).filter(User.email == username).first()
+    if not user or not verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
