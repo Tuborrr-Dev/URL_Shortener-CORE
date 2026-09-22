@@ -50,7 +50,7 @@ def count_em_hr(short_code: str, limit_hrs: int, db: Session) -> int | None:
 
     return (
         db.query(func.count(Click.id))
-        .filter(Click.link_id == link_id, Click.clicked_at >= cutoff_time)
+        .filter(Click.link_id == link_id, Click.created_at >= cutoff_time)
         .scalar()
     )
 
@@ -62,12 +62,12 @@ def daily_counts(short_code: str, db: Session) -> list[dict] | None:
     # this is done for our chats for trendlines and shi
     daily_clicks = (
         db.query(
-            func.date(Click.clicked_at).label("date"),
+            func.date(Click.created_at).label("date"),
             func.count(Click.id).label("clicks"),
         )
         .filter(Click.link_id == link_id)
-        .group_by(func.date(Click.clicked_at))
-        .order_by(func.date(Click.clicked_at).desc())
+        .group_by(func.date(Click.created_at))
+        .order_by(func.date(Click.created_at).desc())
         .all()
     )
 
