@@ -28,8 +28,6 @@ def register_authentication(email: str, password: str, db: Session):
 def authenticate(username: str, password, db: Session):
     user = db.query(User).filter(User.email == username).first()
     if not user or not verify_password(password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        return 401
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return access_token
