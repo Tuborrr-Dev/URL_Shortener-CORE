@@ -1,18 +1,23 @@
-# 1. Get a lightweight Linux machine with Python pre-installed
 FROM python:3.11-slim
 
-# 2. Set the working directory inside the container
+# Prevent Python from writing .pyc files and buffer stdout/stderr for clean logging
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# 3. Copy just the requirements first (Docker caches this step to build faster later)
-COPY requirements.txt .
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# 4. Install your Python packages
+# Install Python requirements
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copy the rest of your actual code into the container
+# Copy application code
 COPY . .
 
-# 6. The Command: Run migrations first, then start the server
-# We use ${PORT:-8000} so Railway can inject its own port dynamically
+# Default command for the web service (runs migrations then starts API)
 CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

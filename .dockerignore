@@ -1,5 +1,9 @@
+.git
+.gitignore
+.env
 venv/
 __pycache__/
-.env
-.git/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
