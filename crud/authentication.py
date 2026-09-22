@@ -25,9 +25,8 @@ def register_authentication(email: str, password: str, db: Session):
     return username
 
 
+# in the case where the user is not verified we give zero access
 def authenticate(username: str, password, db: Session):
     user = db.query(User).filter(User.email == username).first()
     if not user or not verify_password(password, user.hashed_password):
-        return 401
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return access_token
+        return None
