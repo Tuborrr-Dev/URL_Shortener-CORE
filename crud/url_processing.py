@@ -70,6 +70,6 @@ def elongate(short_code: str, refer_url: str, iphash: str, db: Session) -> str |
     ).isoformat()  # <-- ISO 8601 strings ("2026-09-17T22:45:00+00:00") safely serialize through Redis/Celery's default JSON serializer without epoch/timezone offset bugs.
     # above all else after confirming a link exists now a count should exist towards its clicks
     log_clicks.delay(
-        link_id=link_id, clicked_at=click_time, referrer=refer_url, ip_hash=iphash
+        link_id=link_id, created_at_at=click_time, referrer=refer_url, ip_hash=iphash
     )  # <-- we now save the date time in epoch
     return long_url
