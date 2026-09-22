@@ -1,20 +1,41 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import get_db
 from schemas.pydantic_models import UrlRequest, UserCreate
 from crud.url_processing import shorten, elongate
-from crud.authentication import register_authentication
+from crud.authentication import register_authentication, authenticate
 from crud.url_stats import count_em_up, count_em_hr, daily_counts
 import hashlib
 
 router = APIRouter()
 
 
-# endpoint to register a user still not available
 @router.post("/register")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    auth = register_authentication(user.email, db)
+    username = register_authentication(user.email, user.password, db)
+    if username == None:  # <-- the email already exists
+        raise HTTPException(status_code=400, detail="Email already registered")
+    else:
+        return {"message": "User created successfully", "username": username}
+
+
+@router.post("/login")
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    # OAuth2PasswordRequestForm uses 'username' by default, but we will pass the email into it
+    user_id = authenticate(form_data.username, form_data.password, db)
+    if user_id == 401:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 # table to store endpoint and it's click counts in background updated every hour
