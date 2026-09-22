@@ -36,7 +36,3 @@ class Click(Base):
     ip_hash = Column(String(100))
     referrer = Column(String(250))
     link = relationship("Link", back_populates="clicks")
-
-
-# create at all instances
-Base.metadata.create_all(engine)
