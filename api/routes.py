@@ -8,6 +8,8 @@ from crud.url_processing import shorten, elongate
 from crud.authentication import register_authentication, authenticate
 from crud.url_stats import count_em_up, count_em_hr, daily_counts
 import hashlib
+from services.auth import get_current_user, create_access_token
+from models.models import User
 
 router = APIRouter()
 
@@ -25,15 +27,18 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    # OAuth2PasswordRequestForm uses 'username' by default, but we will pass the email into it
-    user_id = authenticate(form_data.username, form_data.password, db)
-    if user_id == 401:
+    # Pass form_data.username (which holds the email) to authenticate
+    user = authenticate(form_data.username, form_data.password, db)
+    if user == None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return {"access_token": user_id, "token_type": "bearer"}
+
+    # Generate an actual signed JWT token containing user.id
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 # table to store endpoint and it's click counts in background updated every hour
@@ -41,13 +46,15 @@ def login(
 
 @router.post("/shorten_url")  # <-- this is the post method to our API to save the URL
 def shorten_url(
-    payload: UrlRequest, db: Session = Depends(get_db)
+    payload: UrlRequest,
+    current_user: User = Depends(get_current_user),  # <-- Secure JWT dependency
+    db: Session = Depends(get_db),
 ):  # <-- tells FastAPI: Before running any CRUD, go execute get_db(), grab whatever it yields, and plug it into the db variable."
-    short_cd = shorten(payload.username, payload.long_url, db)
+    short_cd = shorten(user_id=current_user.id, long_url=payload.long_url, db=db)
     if short_cd:
         return {"short_url": short_cd}
     else:
-        raise HTTPException(status_code=400, detail="User not found or Duplicate error")
+        raise HTTPException(status_code=400, detail="Link canont be saved")
 
 
 # Record every click in the clicks table as a background RQ jo
