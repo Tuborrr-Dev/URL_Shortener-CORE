@@ -20,7 +20,7 @@ def log_clicks(link_id: int, clicked_at: str, referrer: str | None, ip_hash: str
             link_id=link_id,
             clicked_at=datetime.fromisoformat(
                 clicked_at
-            ),  # <-- Overrides server_default
+            ),  # <-- Overrides server_default since we already stored the date time in the original url processing
             referrer=referrer,
             ip_hash=ip_hash,
         )
