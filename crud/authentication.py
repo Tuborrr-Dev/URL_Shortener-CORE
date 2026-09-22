@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from models.models import User
 from services.auth import get_password_hash, verify_password, create_access_token
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from models.models import User
 
 
@@ -27,6 +28,11 @@ def register_authentication(email: str, password: str, db: Session):
 
 # in the case where the user is not verified we give zero access
 def authenticate(username: str, password, db: Session):
-    user = db.query(User).filter(User.email == username).first()
+    user = (
+        db.query(User)
+        .filter(or_(User.email == username, User.username == username))
+        .first()
+    )
     if not user or not verify_password(password, user.hashed_password):
         return None
+    return user
