@@ -12,26 +12,45 @@ services:
       retries: 10
     ports:
       - "5432:5432"
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      DATABASE_URL: postgresql://user:pass@db:5432/dbname
+      POOL_MODE: transaction
+      LISTEN_PORT: 6432
+      AUTH_TYPE: scram-sha-256  
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "6432:6432"
+
   web:
     build: .
     depends_on:
-      db:
+      pgbouncer:
         condition: service_healthy
     command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/dbname
+      - DATABASE_URL=postgresql://user:pass@pgbouncer:6432/dbname
       - REDIS_URL=redis://redis:6379/0
 
   celery_worker:
     build: .
     command: celery -A services.background_tasks.celery_app worker --loglevel=info
     environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/dbname
+      - DATABASE_URL=postgresql://user:pass@pgbouncer:6432/dbname
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      db:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_started
