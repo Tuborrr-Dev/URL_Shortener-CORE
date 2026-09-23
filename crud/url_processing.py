@@ -1,4 +1,4 @@
-from models.models import User, Link
+from models.models import Link
 from services.shortener import shorten_B62
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
