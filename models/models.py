@@ -1,4 +1,4 @@
-from database import Base, engine
+from database import Base
 from sqlalchemy import text, Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
