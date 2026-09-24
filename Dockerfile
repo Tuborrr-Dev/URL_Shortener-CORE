@@ -19,5 +19,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Default command for the web service (runs migrations then starts API)
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Default command for the web service (runs migrations then starts API across 4 different workers)
+# each worker is still a separate process with its own SQLAlchemy connection poo
+CMD ["sh", "-c", "alembic upgrade head && gunicorn main:app -k uvicorn.workers.UvicornWorker --workers 4 --bind 0.0.0.0:${PORT:-8000}"]
