@@ -6,7 +6,11 @@ from core.config import (
 
 DB_URL = settings.DATABASE_URL
 
-engine = create_engine(DB_URL)  # engine created
+engine = create_engine(
+    DB_URL,
+    pool_size=20,
+    max_overflow=20,
+)  # engine created with open pools to allow pgbouncer connect appropiately
 SessionLocal = sessionmaker(
     bind=engine
 )  # engine binded to the machine that ensures back and forth flow in sqlalchemy
