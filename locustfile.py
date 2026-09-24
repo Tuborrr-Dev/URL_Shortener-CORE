@@ -3,14 +3,16 @@ from locust import HttpUser, task, between
 
 
 class ShortenerUser(HttpUser):
-    wait_time = between(0.01, 0.1)  # near-continuous — this is a stress test
+    wait_time = between(
+        0.01, 0.1  # <-- the test is being sent every 10-100ms , make your mind for dey
+    )  # near-continuous — this is a stress test (like they do with concrete lol)
 
     def on_start(self):
-        self.email = f"loadtest_{uuid.uuid4()}@test.com"
+        self.email = f"loadtest_{uuid.uuid4()}@test.com"  # <-- unique ID's so we dont just test caching
         self.password = "testpass123"
 
         self.client.post(
-            "/register",
+            "/register",  # <-- hits /register to create the account in the database because thats the real work in my shi
             json={
                 "email": self.email,
                 "password": self.password,
@@ -18,14 +20,16 @@ class ShortenerUser(HttpUser):
         )
 
         resp = self.client.post(
-            "/login",
+            "/login",  # <-- hits /login to generate a real JWT access_token
             data={
                 "username": self.email,
                 "password": self.password,
             },
         )
         token = resp.json().get("access_token")
-        self.headers = {"Authorization": f"Bearer {token}"}
+        self.headers = {
+            "Authorization": f"Bearer {token}"
+        }  # <-- SAVED so all future work doesn't need re-auth
 
     @task
     def shorten_url(self):
