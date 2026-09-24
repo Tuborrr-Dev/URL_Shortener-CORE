@@ -2,7 +2,7 @@
 import random
 import string
 from models.models import User
-from services.auth import get_password_hash, verify_password, create_access_token
+from services.auth import get_password_hash, verify_password
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from models.models import User
