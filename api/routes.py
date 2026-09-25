@@ -57,7 +57,6 @@ def shorten_url(
         raise HTTPException(status_code=400, detail="Link canont be saved")
 
 
-# Record every click in the clicks table as a background RQ jo
 @router.get("/{short_code}")
 def generate_url(short_code: str, request: Request, db: Session = Depends(get_db)):
     # gets where the user came from (e.g., "https://twitter.com/")
