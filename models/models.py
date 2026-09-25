@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import text, Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import text, Column, Integer, String, ForeignKey, DateTime, Index
 from sqlalchemy.orm import relationship
 
 
@@ -24,6 +24,9 @@ class Link(Base):
     )  # <-- allowing unregistered users to have links left when they are unregistered
     owner = relationship("User", back_populates="links")
     clicks = relationship("Click", back_populates="link", cascade="all, delete-orphan")
+    __table_args__ = (
+        Index("ix_links_user_id_long_url", "user_id", "long_url"),
+    )  # this is so that we can have a unique constraint on the combination of user_id and long_url, allowing the same long_url to be shortened by different users without conflict.
 
 
 class Click(Base):
