@@ -6,4 +6,5 @@ celery_app = Celery(
     "url_shortener",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
+    include=["services.background_tasks"],
 )
