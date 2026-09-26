@@ -9,7 +9,7 @@ email-validator>=2.2.0
 # Database & Migrations
 SQLAlchemy>=2.0.28
 alembic>=1.13.1
-psycopg2-binary>=2.9.9
+psycopg[binary]>=3.1
 asyncpg>=0.29.0
 
 # Task Queue & Caching
