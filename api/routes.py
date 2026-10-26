@@ -4,7 +4,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import get_db
 from schemas.pydantic_models import UrlRequest, UserCreate
-from crud.url_processing import shorten, elongate
+from crud.url_processing import (
+    shorten,
+    elongate,
+    get_user_links_with_clicks,
+    delete_user_link,
+)
 from crud.authentication import register_authentication, authenticate
 from crud.url_stats import count_em_up, count_em_hr, daily_counts
 import hashlib
@@ -57,6 +62,58 @@ def shorten_url(
         raise HTTPException(status_code=400, detail="Link canont be saved")
 
 
+# GET /links (auth): the user's links with short_code, long_url, created_at, total clicks
+@router.get("/links")
+def get_user_links(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return get_user_links_with_clicks(current_user.id, db)
+
+
+# DELETE /links/{short_code} (auth, owner only): deletes link and busts Redis cache
+@router.delete("/links/{short_code}")
+def delete_link(
+    short_code: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    success, reason = delete_user_link(short_code, current_user.id, db)
+    if not success:
+        if reason == "not_found":
+            raise HTTPException(status_code=404, detail="Link not found")
+        elif reason == "forbidden":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this link",
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Cannot delete link")
+    return {"message": "Link deleted successfully", "short_code": short_code}
+
+
+# GET /links/{code}/stats <-- return click count of all time and clicks per day (default 24hrs)
+@router.get("/links/{short_code}/stats")
+def generate_url_stats(
+    short_code: str, limit_hrs: int = 24, db: Session = Depends(get_db)
+):
+    # in the function below if we get none we know the link is non-existent
+    result = count_em_up(short_code, db)  # <-- this is the total count of clicks
+    if result == None:
+        raise HTTPException(status_code=404, detail="Link not found")
+    # we dont need to bother about the below returning none since if it would we would already have it above
+    result_hr = count_em_hr(
+        short_code, limit_hrs, db
+    )  # if no parameter query this returns from the past 24hrs
+    daily_stats = daily_counts(short_code, db)  # dict of every click stats daily
+
+    return {
+        "hour clicks": result_hr,
+        "daily stats": daily_stats,
+        "All time clicks": result,
+    }
+
+
 @router.get("/{short_code}")
 def generate_url(short_code: str, request: Request, db: Session = Depends(get_db)):
     # gets where the user came from (e.g., "https://twitter.com/")
@@ -85,25 +142,3 @@ def generate_url(short_code: str, request: Request, db: Session = Depends(get_db
     return RedirectResponse(
         url=long_cd, status_code=307
     )  # <-- ensures our click function is active and still redirects the browser insteda of json
-
-
-# GET /links/{code}/stats <-- return click count of all time and clicks per day (default 24hrs)
-@router.get("/links/{short_code}/stats")
-def generate_url_stats(
-    short_code: str, limit_hrs: int = 24, db: Session = Depends(get_db)
-):
-    # in the function below if we get none we know the link is non-existent
-    result = count_em_up(short_code, db)  # <-- this is the total count of clicks
-    if result == None:
-        raise HTTPException(status_code=404, detail="Link not found")
-    # we dont need to bother about the below returning none since if it would we would already have it above
-    result_hr = count_em_hr(
-        short_code, limit_hrs, db
-    )  # if no parameter query this returns from the past 24hrs
-    daily_stats = daily_counts(short_code, db)  # dict of every click stats daily
-
-    return {
-        "hour clicks": result_hr,
-        "daily stats": daily_stats,
-        "All time clicks": result,
-    }
