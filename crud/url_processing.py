@@ -1,7 +1,8 @@
-from models.models import Link
+from models.models import Link, Click
 from services.shortener import shorten_B62
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 
 # this is calculating the date
 from datetime import datetime, timezone
@@ -73,3 +74,41 @@ def elongate(short_code: str, refer_url: str, iphash: str, db: Session) -> str |
         link_id=link_id, created_at=click_time, referrer=refer_url, ip_hash=iphash
     )  # <-- we now save the date time in epoch
     return long_url
+
+
+def get_user_links_with_clicks(user_id: int, db: Session) -> list[dict]:
+    results = (
+        db.query(Link, func.count(Click.id).label("total_clicks"))
+        .outerjoin(Click, Link.id == Click.link_id)
+        .filter(Link.user_id == user_id)
+        .group_by(Link.id)
+        .order_by(Link.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "short_code": link.short_code,
+            "long_url": link.long_url,
+            "created_at": link.created_at.isoformat() if link.created_at else None,
+            "total_clicks": total_clicks,
+            "clicks": total_clicks,
+        }
+        for link, total_clicks in results
+    ]
+
+
+def delete_user_link(short_code: str, user_id: int, db: Session) -> tuple[bool, str]:
+    link = db.query(Link).filter(Link.short_code == short_code).first()
+    if not link:
+        return False, "not_found"
+    if link.user_id != user_id:
+        return False, "forbidden"
+
+    try:
+        r.delete(short_code)
+    except Exception:
+        pass
+
+    db.delete(link)
+    db.commit()
+    return True, "deleted"

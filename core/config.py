@@ -5,6 +5,7 @@ from pydantic_settings import SettingsConfigDict, BaseSettings
 class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_URL: str
+    CORS_ORIGINS: str = "http://localhost:5173"
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
